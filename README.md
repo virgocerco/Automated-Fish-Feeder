@@ -1,50 +1,66 @@
-# Welcome to your Expo app 👋
+# Automated Fish Feeder Project
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Welcome to the Automated Fish Feeder project repository! This project was developed as part of our **APPSDEV** and **HCI** subjects.
 
-## Get started
+## Overview
 
-1. Install dependencies
+The Automated Fish Feeder is an IoT-based solution designed to automate the feeding process for fish. By utilizing an ESP32 microcontroller and a React-based application, this project aims to make fish care more convenient and reliable for pet owners.
 
+## Features
+
+- **Automated Feeding Schedule:** Set specific feeding times for your fish.
+- **Manual Feeding Option:** Trigger feeding manually via the React app.
+- **Mobile-Friendly UI:** User-friendly interface accessible from any device.
+- **Feed Quantity Adjustment:** Control the amount of food dispensed.
+- **Monitoring:** Keep track of feeding history and system status.
+
+## Technologies Used
+
+- **Hardware:**
+  - ESP32 Microcontroller
+  - Servo Motor for dispensing feed
+  - Hopper for fish feed storage
+- **Software:**
+  - React (Frontend)
+  - Firebase (Backend and Realtime Database)
+  - Arduino IDE (ESP32 Programming)
+  - CSS for UI Styling
+
+## Installation
+
+### Hardware Setup
+
+1. Assemble the fish feeder using the ESP32, a servo motor, and a hopper.
+2. Connect the ESP32 to your computer for programming.
+3. Ensure proper wiring and test the servo motor for functionality.
+
+### Software Setup
+
+1. Clone this repository:
    ```bash
+   git clone https://github.com/virgocerco/Automated-Fish-Feeder
+   ```
+2. Navigate to the frontend directory and install dependencies:
+   ```bash
+   cd frontend
    npm install
    ```
-
-2. Start the app
-
+3. Configure Firebase:
+   - Add your Firebase project credentials to the `.env` file.
+4. Deploy the React app:
    ```bash
-    npx expo start
+   npm start
    ```
+5. Upload the ESP32 code to the microcontroller using the Arduino IDE.
 
-In the output, you'll find options to open the app in a
+## Usage
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+1. Open the React app in your browser.
+2. Log in or sign up to create an account.
+3. Set up feeding schedules or manually trigger feed dispensing.
+4. Monitor feeding history and adjust settings as needed.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Acknowledgments
 
-## Get a fresh project
+We would like to thank our professors and peers for their guidance and support throughout this project.
 
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
