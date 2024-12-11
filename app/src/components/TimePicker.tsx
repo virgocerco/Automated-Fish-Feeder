@@ -1,232 +1,220 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
-  Alert,
-  Vibration,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Image, 
+  Platform, 
+  Modal
 } from 'react-native';
-
-// Firebase Realtime Database imports
-import { getDatabase, ref, set, get } from 'firebase/database';
+import { useNavigation } from '@react-navigation/native';
+import { signOut } from 'firebase/auth';
 import { auth } from '../utils/firebaseConfig';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { KeyboardAvoidingView } from 'react-native';
+import TimePicker from '../components/TimePicker';
+import AmountSlider from '../components/AmountSlider';
+import Calendar from '../components/Calendar';
+import FeedingAmount from '../components/FeedingAmount';
 
-// Font Loader
-import { useFontLoader } from '../utils/fontLoader';
-
-const TIME_VALUES = {
-  hours: Array.from({ length: 12 }, (_, i) => (i + 1).toString()),
-  minutes: Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')),
-  periods: ['AM', 'PM'],
-};
-
-const loopIndex = (array: string[], index: number): number => {
-  const len = array.length;
-  return (index + len) % len;
-};
-
-// Convert 12-hour format to 24-hour format string
-const convertTo24HourFormat = (hour: string, minute: string, period: string): string => {
-  let hourNum = parseInt(hour);
-  
-  // Convert to 24-hour format
-  if (period === 'PM' && hourNum !== 12) {
-    hourNum += 12;
-  } else if (period === 'AM' && hourNum === 12) {
-    hourNum = 0;
-  }
-  
-  // Return time in HH:MM format
-  return `${hourNum.toString().padStart(2, '0')}:${minute}`;
-};
-
-// Calculate next feed time based on initial time and interval
-const calculateNextFeedTime = (initialTime: string, interval: number = 1): string => {
-  const [initialHours, initialMinutes] = initialTime.split(':').map(Number);
-  const now = new Date();
-  const initialDate = new Date(now);
-  initialDate.setHours(initialHours, initialMinutes, 0, 0);
-
-  // Calculate next feeding time
-  const nextFeedTime = new Date(initialDate.getTime() + interval * 60 * 60 * 1000);
-
-  // Format to 24-hour time
-  return nextFeedTime.toLocaleTimeString('en-GB', {
+// Utility function to get Philippine Time
+const getPhilippineTime = () => {
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'Asia/Manila',
+    hour12: true,
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
-  });
+    second: '2-digit'
+  };
+  return new Intl.DateTimeFormat('en-PH', options).format(new Date());
 };
 
-const TimePicker: React.FC = () => {
-  const [hourIndex, setHourIndex] = useState(0);
-  const [minuteIndex, setMinuteIndex] = useState(0);
-  const [periodIndex, setPeriodIndex] = useState(0);
+// Convert 24-hour time to 12-hour format
+const convertTo12HourFormat = (time24: string): string => {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  let displayHours = hours % 12;
+  displayHours = displayHours === 0 ? 12 : displayHours;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
 
-  const { fontsLoaded, fontError } = useFontLoader();
+export default function Dashboard() {
+  const navigation = useNavigation();
+  const [currentTime, setCurrentTime] = useState(getPhilippineTime());
+  const [FeedingTime, setFeedingTime] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
-    const fetchSavedTime = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          return;
-        }
-  
-        const db = getDatabase();
-        const timeRef = ref(db, `HISTORY/feedingTime/time`);
-  
-        // Read the saved time
-        const timeSnapshot = await get(timeRef);
-  
-        if (timeSnapshot.exists()) {
-          const savedTime = timeSnapshot.val();
-          const [savedHour, savedMinute] = savedTime.split(':').map(Number);
-  
-          // Convert 24-hour format back to 12-hour format
-          let displayHour = savedHour;
-          let period = 'AM';
-  
-          if (savedHour >= 12) {
-            period = 'PM';
-            if (savedHour > 12) {
-              displayHour = savedHour - 12;
-            }
-          }
-          if (displayHour === 0) {
-            displayHour = 12;
-          }
-  
-          // Set the indexes to match the saved time
-          setHourIndex(TIME_VALUES.hours.indexOf(displayHour.toString()));
-          setMinuteIndex(TIME_VALUES.minutes.indexOf(savedMinute.toString().padStart(2, '0')));
-          setPeriodIndex(TIME_VALUES.periods.indexOf(period));
-        } else {
-          // Fallback: Set default time if no saved time found
-          setHourIndex(0);
-          setMinuteIndex(0);
-          setPeriodIndex(0); // Default to 1:00 AM
-        }
-      } catch (error) {
-        console.error('Error fetching saved time:', error);
+    // Update time every second
+    const timer = setInterval(() => {
+      setCurrentTime(getPhilippineTime());
+    }, 1000);
+
+    // Fetch and listen to next feed time from Firebase
+    const db = getDatabase();
+    const FeedingTimeRef = ref(db, `HISTORY/feedingTime/FeedingTime`);
+
+    // Listen for real-time updates
+    const unsubscribe = onValue(FeedingTimeRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const nextTime24Hour = snapshot.val();
+        // Convert 24-hour time to 12-hour format
+        const nextTime12Hour = convertTo12HourFormat(nextTime24Hour);
+        setFeedingTime(nextTime12Hour);  // Update state with the formatted feeding time
       }
-    };
-  
-    fetchSavedTime();
-  }, []);
-  
-  useEffect(() => {
-    const submitTime = async () => {
-      try {
-        // Get current user
-        const user = auth.currentUser;
-        if (!user) {
-          Alert.alert('Error', 'User not authenticated');
-          return;
-        }
-
-        // Convert selected time to 24-hour format string
-        const timeString = convertTo24HourFormat(
-          TIME_VALUES.hours[hourIndex],
-          TIME_VALUES.minutes[minuteIndex],
-          TIME_VALUES.periods[periodIndex]
-        );
-
-        // Get Firebase Realtime Database instance
-        const db = getDatabase();
-
-        // Submit time to Firebase Realtime Database
-        await set(ref(db, `HISTORY/feedingTime/time`), timeString);
-
-        // Fetch current feeding interval
-        const intervalSnapshot = await get(ref(db, `HISTORY/feedingInterval/interval`));
-        const interval = intervalSnapshot.exists() ? intervalSnapshot.val() : 1;
-
-        // Calculate and submit next feed time
-        const nextFeedTime = calculateNextFeedTime(timeString, interval);
-        await set(ref(db, `HISTORY/feedingTime/nextFeedTime`), nextFeedTime);
-
-        // Vibrate briefly on successful time submission
-        Vibration.vibrate(100);
-
-      } catch (error) {
-        console.error('Error submitting time:', error);
-        Alert.alert('Error', 'Failed to submit feed time');
-      }
-    };
-
-    submitTime();
-  }, [hourIndex, minuteIndex, periodIndex]);
-
-  const createPanResponder = (
-    onSwipeUp: () => void,
-    onSwipeDown: () => void
-  ) =>
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderRelease: (
-        _: GestureResponderEvent,
-        gestureState: PanResponderGestureState
-      ) => {
-        if (gestureState.dy < -10) {
-          // Swipe Up
-          onSwipeUp();
-          // Short vibration on swipe up
-          Vibration.vibrate(50);
-        } else if (gestureState.dy > 10) {
-          // Swipe Down
-          onSwipeDown();
-          // Short vibration on swipe down
-          Vibration.vibrate(50);
-        }
-      },
     });
 
-  const hourResponder = createPanResponder(
-    () => setHourIndex((prev) => loopIndex(TIME_VALUES.hours, prev - 1)),
-    () => setHourIndex((prev) => loopIndex(TIME_VALUES.hours, prev + 1))
-  );
+    // Cleanup interval and listener on component unmount
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
+  }, []);
 
-  const minuteResponder = createPanResponder(
-    () => setMinuteIndex((prev) => loopIndex(TIME_VALUES.minutes, prev - 1)),
-    () => setMinuteIndex((prev) => loopIndex(TIME_VALUES.minutes, prev + 1))
-  );
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsModalVisible(false);
+      (navigation as any).navigate('AuthScreen');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-  const periodResponder = createPanResponder(
-    () => setPeriodIndex((prev) => loopIndex(TIME_VALUES.periods, prev - 1)),
-    () => setPeriodIndex((prev) => loopIndex(TIME_VALUES.periods, prev + 1))
-  );
+  const handleAbout = () => {
+    // Navigate to About screen or show an alert
+    setIsModalVisible(false);
+    (navigation as any).navigate('AboutScreen');
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.column} {...hourResponder.panHandlers}>
-        <Text style={{fontFamily: 'Motley', color: '#0D5C63', fontSize: 60}}>{TIME_VALUES.hours[hourIndex]}</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      {/* Modal Button */}
+      <TouchableOpacity
+        onPress={() => setIsModalVisible(!isModalVisible)}
+        style={styles.modalButton}
+      >
+        <Text style={styles.modalButtonText}>•••</Text>
+      </TouchableOpacity>
+
+      {/* Existing Modal Content */}
+      {isModalVisible && (
+        <View style={styles.absoluteModalContainer}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.modalOption} 
+              onPress={handleAbout}
+            >
+              <Text style={styles.modalOptionText}>About</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity 
+              style={styles.modalOption} 
+              onPress={handleLogout}
+            >
+              <Text style={styles.modalOptionText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <View style={{flex: 1, backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0, marginBottom: -50}}>
+        <Image
+          style={{position: 'absolute', width: '100%', height: '100%'}}
+          source={require('../../assets/media/background/aquarium.png')}
+        />
+        
+        {/* TIME 101 */}
+        <View style={{ width: '84%', height: '50%', borderRadius: 18, display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 20, paddingTop: 10 }}>
+          <Image style={{ position: 'absolute', width: '110%', height: '100%', resizeMode: 'stretch', zIndex: 0 }} source={require('../../assets/media/background/time-frame.png')} />
+          <TimePicker />
+          <Text style={{ color: '#0D5C63', fontSize: 14, fontFamily: 'Motley' }}>
+            Current Time: {currentTime}
+          </Text>
+          {FeedingTime && (
+            <Text style={{ color: '#DAA520', fontSize: 12, fontFamily: 'Motley' }}>
+              Next Feed Time: {FeedingTime}
+            </Text>
+          )}
+        </View>
+
+        {/* Amount Slider with Touchable Wrapper */}
+        <View style={{ width: '84%', position: 'relative' }}>
+          <AmountSlider />
+          <FeedingAmount />
+        </View>
       </View>
-      <Text style={{fontFamily: 'Motley', color: '#0D5C63', fontSize: 40}}>:</Text>
-      <View style={styles.column} {...minuteResponder.panHandlers}>
-        <Text style={{fontFamily: 'Motley', color: '#0D5C63', fontSize: 60}}>{TIME_VALUES.minutes[minuteIndex]}</Text>
+
+      <View style={{ position: 'relative', flex: 1, backgroundColor: '#6bacab', borderLeftWidth: 2, borderRightWidth: 2, borderTopWidth: 3, borderColor: '#0D5C63', display: 'flex', justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
+        <View style={{ position: 'absolute', top: 12, display: 'flex', flexDirection: 'row', gap: 6, backgroundColor: 'transparent' }}>
+          <TouchableOpacity style={{ backgroundColor: '#0D5C63', borderRadius: 12, width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }} onPress={() => { }}>
+            <Image style={{ width: 30, height: 30 }} source={require('../../assets/media/icon/calendar-ico.png')} />
+          </TouchableOpacity>
+          <TouchableOpacity style={{ backgroundColor: '#0D5C63', borderRadius: 12, width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }} onPress={() => { }}>
+            <Image style={{ width: 30, height: 30 }} source={require('../../assets/media/icon/book-ico.png')} />
+          </TouchableOpacity>
+        </View>
+        <Calendar />
       </View>
-      <View style={styles.column} {...periodResponder.panHandlers}>
-        <Text style={{fontFamily: 'Motley', color: '#E3655B', fontSize: 60}}>{TIME_VALUES.periods[periodIndex]}</Text>
-      </View>
-    </View>
+    </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
+    flexDirection: 'column',
+    backgroundColor: '#f5f5f5'
   },
-  column: {
+  modalButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 38,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: 'white',
+    display: 'flex',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 10,
+    zIndex: 1000
+  },
+  modalButtonText: {
+    fontSize: 18,
+    color: 'black',
+    fontFamily: 'Motley',
+    margin: 0
+  },
+  absoluteModalContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 1001
+  },
+  modalContent: {
+    width: 120,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5
+  },
+  modalOption: {
+    padding: 10,
+    alignItems: 'center'
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#0D5C63',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E0E0E0'
   },
 });
-
-export default TimePicker;

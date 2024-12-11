@@ -16,7 +16,6 @@ const getPhilippineTime = () => {
   return new Intl.DateTimeFormat('en-PH', options).format(new Date());
 };
 
-// Notification messages array
 const FEEDING_NOTIFICATIONS = [
   "Kumakain na yung isda haha",
   "eyy busog nanaman ung isda",
@@ -28,32 +27,31 @@ const FEEDING_NOTIFICATIONS = [
   "sanaol thank u po",
 ];
 
-export default function AmountSlider() {
+export default function FeedingTime() {
   const [circlePosition, setCirclePosition] = useState(0);
   const positions = [1.5, 20, 39, 58, 77, 90];
   const numbers = Array.from({ length: 6 }, (_, i) => i + 1);
 
-const calculateNextFeedTime = (initialTime: string, interval: number = 1): string => {
-  const [initialHours, initialMinutes] = initialTime.split(':').map(Number);
-  const now = new Date();
-  const initialDate = new Date(now);
-  initialDate.setHours(initialHours, initialMinutes, 0, 0);
+  // Calculate the feeding time based on the initial time and interval
+  const calculateFeedingTime = (initialTime: string, interval: number): string => {
+    const [initialHours, initialMinutes] = initialTime.split(':').map(Number);
+    const now = new Date();
+    const initialDate = new Date(now);
+    initialDate.setHours(initialHours, initialMinutes, 0, 0);
 
-  // Calculate next feeding time
-  const nextFeedTime = new Date(initialDate.getTime() + interval * 60 * 60 * 1000);
+    // Calculate the feeding time
+    const feedingTime = new Date(initialDate.getTime() + interval * 60 * 60 * 1000);
 
-  // Format to 24-hour time
-  return nextFeedTime.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-};
+    // Format to 24-hour time
+    return feedingTime.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
 
-
-  // Fetch the saved value from Firebase when the component mounts
   useEffect(() => {
-    const fetchSavedValue = async () => {
+    const fetchFeedingTime = async () => {
       const db = getDatabase();
       const userId = auth.currentUser?.uid;
       if (userId) {
@@ -73,51 +71,38 @@ const calculateNextFeedTime = (initialTime: string, interval: number = 1): strin
       }
     };
 
-    fetchSavedValue();
+    fetchFeedingTime();
   }, []);
 
-  // Function to schedule notifications and set up continuous checking
   useEffect(() => {
-    let intervalId;
-  
-    const checkAndTriggerFeeding = async () => {
+    const checkFeedingTime = async () => {
       const db = getDatabase();
       try {
         const timeSnapshot = await get(ref(db, `HISTORY/feedingTime/time`));
         const intervalSnapshot = await get(ref(db, `HISTORY/feedingInterval/interval`));
-        const nextFeedTimeSnapshot = await get(ref(db, `HISTORY/feedingTime/nextFeedTime`));
-    
+
         if (timeSnapshot.exists() && intervalSnapshot.exists()) {
           const initialTime = timeSnapshot.val(); // e.g., "12:22"
           const interval = intervalSnapshot.val(); // e.g., 1 hour
           const philippineTime = getPhilippineTime(); // Current time in Philippine timezone
-    
+
           console.log(`Current Philippine Time: ${philippineTime}`);
-    
-          let nextFeedTime;
-          if (!nextFeedTimeSnapshot.exists()) {
-            // If nextFeedTime is not set, calculate it
-            nextFeedTime = calculateNextFeedTime(initialTime, interval);
-            await set(ref(db, `HISTORY/feedingTime/nextFeedTime`), nextFeedTime);
-          } else {
-            // Use the existing next feed time
-            nextFeedTime = nextFeedTimeSnapshot.val();
-          }
-    
-          console.log(`Next Feed Time: ${nextFeedTime}`);
-    
+
+          const feedingTime = calculateFeedingTime(initialTime, interval);
+          console.log(`Feeding Time: ${feedingTime}`);
+
           // Parse times for comparison
           const [currentHour, currentMinute, currentSecond] = philippineTime.split(':').map(Number);
-          const [nextHour, nextMinute] = nextFeedTime.split(':').map(Number);
-    
-          // Check if current time matches next feed time at HH:mm:00
+          const [feedingHour, feedingMinute] = feedingTime.split(':').map(Number);
+
+          // Check if current time matches feeding time at HH:mm:00
           if (
-            currentHour === nextHour &&
-            currentMinute === nextMinute &&
+            currentHour === feedingHour &&
+            currentMinute === feedingMinute &&
             currentSecond === 0 // Ensure the second is exactly 00
           ) {
             console.log(`Feeding time triggered at: ${philippineTime}`);
-    
+
             // Trigger notification
             await Notifications.scheduleNotificationAsync({
               content: {
@@ -127,61 +112,48 @@ const calculateNextFeedTime = (initialTime: string, interval: number = 1): strin
               },
               trigger: null,
             });
-    
+
             // Vibrate
             Vibration.vibrate([500, 500, 500]);
-    
-            // Calculate and store the next feed time
-            const newNextFeedTime = calculateNextFeedTime(nextFeedTime, interval);
-            await set(ref(db, `HISTORY/feedingTime/nextFeedTime`), newNextFeedTime);
-            console.log(`Updated Next Feed Time: ${newNextFeedTime}`);
           }
         }
       } catch (error) {
         console.error('Error checking feeding times:', error);
       }
     };
-    
-    
-    
-    // Start the interval for checking feeding times
-    intervalId = setInterval(checkAndTriggerFeeding, 1000);
-  
+
+    // Start checking feeding time
+    const intervalId = setInterval(checkFeedingTime, 1000);
+
     return () => clearInterval(intervalId); // Cleanup on component unmount
-  }, []); // No dependencies, runs once on mount
-  
+  }, []);
 
-
-  
-  // Handle slider changes to restart feeding
   const handleSliderClick = async () => {
     const db = getDatabase();
     const userId = auth.currentUser?.uid;
     if (userId) {
       const newPosition = (circlePosition + 1) % 6;
       setCirclePosition(newPosition);
-  
+
       // Update interval in Firebase
       const intervalRefPath = ref(db, `HISTORY/feedingInterval/interval`);
       await set(intervalRefPath, numbers[newPosition]);
-  
-      // Fetch current feeding time and reset the next feed time
+
+      // Fetch current feeding time and recalculate the feeding time
       const timeSnapshot = await get(ref(db, `HISTORY/feedingTime/time`));
       if (timeSnapshot.exists()) {
         const initialTime = timeSnapshot.val();
-        const nextFeedTime = calculateNextFeedTime(initialTime, numbers[newPosition]);
-  
-        // Reset next feed time in Firebase
-        const nextFeedTimeRef = ref(db, `HISTORY/feedingTime/nextFeedTime`);
-        await set(nextFeedTimeRef, nextFeedTime);
-  
-        console.log(`Slider updated. New Next Feed Time: ${nextFeedTime}`);
+        const feedingTime = calculateFeedingTime(initialTime, numbers[newPosition]);
+
+        // Update feeding time in Firebase
+        const feedingTimeRef = ref(db, `HISTORY/feedingTime/feedingTime`);
+        await set(feedingTimeRef, feedingTime);
+
+        console.log(`Slider updated. New Feeding Time: ${feedingTime}`);
       }
     }
   };
-  
 
-  // Log the selected number when circlePosition changes
   useEffect(() => {
     console.log(`Selected interval: ${numbers[circlePosition]} hours`);
   }, [circlePosition]);
@@ -213,7 +185,6 @@ const calculateNextFeedTime = (initialTime: string, interval: number = 1): strin
   );
 }
 
-// Styles remain the same as in the original component
 const styles = StyleSheet.create({
   sliderContainer: {
     width: '80%',

@@ -48,7 +48,7 @@ export default function Dashboard() {
   const [timeTooltipTimeout, setTimeTooltipTimeout] = useState(null);
   const [amountTooltipTimeout, setAmountTooltipTimeout] = useState(null);
 
-  const [nextFeedTime, setNextFeedTime] = useState<string | null>(null);
+  const [FeedingTime, setFeedingTime] = useState<string | null>(null);
 
   useEffect(() => {
     // Update time every second
@@ -58,15 +58,15 @@ export default function Dashboard() {
 
     // Fetch and listen to next feed time
     const db = getDatabase();
-    const nextFeedTimeRef = ref(db, `HISTORY/feedingTime/nextFeedTime`);
+    const FeedingTimeRef = ref(db, `HISTORY/feedingTime/FeedingTime`);
 
     // Listen for real-time updates
-    const unsubscribe = onValue(nextFeedTimeRef, (snapshot) => {
+    const unsubscribe = onValue(FeedingTimeRef, (snapshot) => {
       if (snapshot.exists()) {
         const nextTime24Hour = snapshot.val();
         // Convert to 12-hour format
         const nextTime12Hour = convertTo12HourFormat(nextTime24Hour);
-        setNextFeedTime(nextTime12Hour);
+        setFeedingTime(nextTime12Hour);
       }
     });
 
@@ -208,9 +208,9 @@ export default function Dashboard() {
           <Text style={{color: '#0D5C63', fontSize: 14, fontFamily: 'Motley'}}>
             Current Time: {currentTime}
           </Text>
-          {nextFeedTime && (
+          {FeedingTime && (
             <Text style={{color: '#DAA520', fontSize: 12, fontFamily: 'Motley'}}>
-              Next Feed Time: {nextFeedTime}
+              Next Feed Time: {FeedingTime}
             </Text>
           )}
         </View>
