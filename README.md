@@ -38,7 +38,7 @@ The Automated Fish Feeder is an IoT-based solution designed to automate the feed
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/automated-fish-feeder.git
+   git clone https://github.com/virgocerco/Automated-Fish-Feeder
    ```
 2. Navigate to the frontend directory and install dependencies:
    ```bash
