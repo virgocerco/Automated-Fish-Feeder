@@ -43,6 +43,24 @@ const convertTo24HourFormat = (hour: string, minute: string, period: string): st
   return `${hourNum.toString().padStart(2, '0')}:${minute}`;
 };
 
+// Calculate next feed time based on initial time and interval
+const calculateNextFeedTime = (initialTime: string, interval: number = 1): string => {
+  const [initialHours, initialMinutes] = initialTime.split(':').map(Number);
+  const now = new Date();
+  const initialDate = new Date(now);
+  initialDate.setHours(initialHours, initialMinutes, 0, 0);
+
+  // Calculate next feeding time
+  const nextFeedTime = new Date(initialDate.getTime() + interval * 60 * 60 * 1000);
+
+  // Format to 24-hour time
+  return nextFeedTime.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
 const TimePicker: React.FC = () => {
   const [hourIndex, setHourIndex] = useState(0);
   const [minuteIndex, setMinuteIndex] = useState(0);
@@ -122,6 +140,14 @@ const TimePicker: React.FC = () => {
 
         // Submit time to Firebase Realtime Database
         await set(ref(db, `HISTORY/feedingTime/time`), timeString);
+
+        // Fetch current feeding interval
+        const intervalSnapshot = await get(ref(db, `HISTORY/feedingInterval/interval`));
+        const interval = intervalSnapshot.exists() ? intervalSnapshot.val() : 1;
+
+        // Calculate and submit next feed time
+        const nextFeedTime = calculateNextFeedTime(timeString, interval);
+        await set(ref(db, `HISTORY/feedingTime/nextFeedTime`), nextFeedTime);
 
         // Vibrate briefly on successful time submission
         Vibration.vibrate(100);

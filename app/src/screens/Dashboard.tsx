@@ -11,11 +11,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../utils/firebaseConfig';
-import { getDatabase, ref, get } from 'firebase/database';
+import { getDatabase, ref, get, onValue } from 'firebase/database';
 import { KeyboardAvoidingView } from 'react-native';
 import TimePicker from '../components/TimePicker';
 import AmountSlider from '../components/AmountSlider';
 import Calendar from '../components/Calendar';
+import FeedingAmount from '../components/FeedingAmount';
 
 // Utility function to get Philippine Time
 const getPhilippineTime = () => {
@@ -29,6 +30,15 @@ const getPhilippineTime = () => {
   return new Intl.DateTimeFormat('en-PH', options).format(new Date());
 };
 
+// Convert 24-hour time to 12-hour format
+const convertTo12HourFormat = (time24: string): string => {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  let displayHours = hours % 12;
+  displayHours = displayHours === 0 ? 12 : displayHours;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
 export default function Dashboard() {
   const navigation = useNavigation();
   const [currentTime, setCurrentTime] = useState(getPhilippineTime());
@@ -38,7 +48,7 @@ export default function Dashboard() {
   const [timeTooltipTimeout, setTimeTooltipTimeout] = useState(null);
   const [amountTooltipTimeout, setAmountTooltipTimeout] = useState(null);
 
-  const [nextFeedTimes, setNextFeedTimes] = useState<string[]>([]);
+  const [nextFeedTime, setNextFeedTime] = useState<string | null>(null);
 
   useEffect(() => {
     // Update time every second
@@ -46,35 +56,27 @@ export default function Dashboard() {
       setCurrentTime(getPhilippineTime());
     }, 1000);
 
-    // Cleanup interval on component unmount
-    return () => clearInterval(timer);
-  }, []);
+    // Fetch and listen to next feed time
+    const db = getDatabase();
+    const nextFeedTimeRef = ref(db, `HISTORY/feedingTime/nextFeedTime`);
 
-  useEffect(() => {
-    // Update time every second
-    const timer = setInterval(() => {
-      setCurrentTime(getPhilippineTime());
-    }, 1000);
-
-    // Fetch next feed times
-    const fetchNextFeedTimes = async () => {
-      const db = getDatabase();
-      try {
-        const nextFeedTimesRef = ref(db, `HISTORY/feedingTime/nextFeedTimes`);
-        const snapshot = await get(nextFeedTimesRef);
-        if (snapshot.exists()) {
-          setNextFeedTimes(snapshot.val());
-        }
-      } catch (error) {
-        console.error('Error fetching next feed times:', error);
+    // Listen for real-time updates
+    const unsubscribe = onValue(nextFeedTimeRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const nextTime24Hour = snapshot.val();
+        // Convert to 12-hour format
+        const nextTime12Hour = convertTo12HourFormat(nextTime24Hour);
+        setNextFeedTime(nextTime12Hour);
       }
+    });
+
+    // Cleanup interval and listener on component unmount
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
     };
-
-    fetchNextFeedTimes();
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(timer);
   }, []);
+
 
   const handleLogout = async () => {
     try {
@@ -192,7 +194,7 @@ export default function Dashboard() {
           }}
         >
           <Image 
-            style={{position: 'absolute', width: '110%', height: '120%', resizeMode: 'stretch', zIndex: 0}} 
+            style={{position: 'absolute', width: '110%', height: '100%', resizeMode: 'stretch', zIndex: 0}} 
             source={require('../../assets/media/background/time-frame.png')} 
           />
           <TouchableOpacity 
@@ -206,9 +208,9 @@ export default function Dashboard() {
           <Text style={{color: '#0D5C63', fontSize: 14, fontFamily: 'Motley'}}>
             Current Time: {currentTime}
           </Text>
-          {nextFeedTimes.length > 0 && (
+          {nextFeedTime && (
             <Text style={{color: '#DAA520', fontSize: 12, fontFamily: 'Motley'}}>
-              Next Feed Time: {nextFeedTimes[0]}
+              Next Feed Time: {nextFeedTime}
             </Text>
           )}
         </View>
@@ -221,11 +223,11 @@ export default function Dashboard() {
             style={{position: 'absolute', width: '100%', height: '100%', zIndex: 0, backgroundColor: 'transparent'}}
           />
           <AmountSlider />
+          <FeedingAmount/>
         </View>
       </View>
 
-      {/* Rest of the component remains the same */}
-      <View style={{position: 'relative', flex: 1.2, backgroundColor: '#6bacab', borderLeftWidth: 2, borderRightWidth: 2, borderTopWidth: 3, borderColor: '#0D5C63', display: 'flex', justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32}}>
+      <View style={{position: 'relative', flex: 1, backgroundColor: '#6bacab', borderLeftWidth: 2, borderRightWidth: 2, borderTopWidth: 3, borderColor: '#0D5C63', display: 'flex', justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32}}>
         <View style={{position: 'absolute', top: 12, display: 'flex', flexDirection: 'row', gap: 6, backgroundColor: 'transparent'}}>
           <TouchableOpacity style={{backgroundColor: '#0D5C63', borderRadius: 12, width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center'}} onPress={() => {}}>
             <Image style={{width: 30, height: 30}} source={require('../../assets/media/icon/calendar-ico.png')}></Image>
