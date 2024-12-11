@@ -1,2 +1,2 @@
-# Sixteen
-BSIT 3E - React Native Expo App TSX with ESP32 Integration
+# BSIT 3E (School Purpose)
+React Native Expo App TSX with ESP32 Integration
