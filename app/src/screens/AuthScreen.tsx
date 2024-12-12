@@ -108,40 +108,44 @@ export default function AuthScreen() {
 
     const handleLogin = async () => {
       try {
-        // Validate inputs
         if (!loginEmail || !loginPassword) {
-            Alert.alert('Error', 'Please enter email and password');
-            return;
+          Alert.alert('Error', 'Please enter email and password');
+          return;
         }
-
-        // Attempt login
+    
+        // Add more detailed logging
+        console.log('Attempting login...');
+    
         const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
         
-        
-
-        // Navigate to Dashboard on successful login
-        (navigation as any).navigate('Dashboard');
+        console.log('Login successful', userCredential.user);
+    
+        // Use a more robust navigation method
+        if (navigation) {
+          (navigation.navigate as (routeName: string) => void)('Dashboard');
+        } else {
+          console.error('Navigation object is undefined');
+        }
       } catch (error: any) {
-          // More user-friendly error handling
-          let errorMessage = 'An unexpected error occurred';
-          
-          switch(error.code) {
-              case 'auth/invalid-credential':
-                  errorMessage = 'Invalid email or password';
-                  break;
-              case 'auth/user-not-found':
-                  errorMessage = 'No user found with this email';
-                  break;
-              case 'auth/wrong-password':
-                  errorMessage = 'Incorrect password';
-                  break;
-          }
-          
-          Alert.alert('Login Error', errorMessage);
-          console.error("Login Error:", error);
+        console.error('Detailed Login Error:', error);
+        
+        let errorMessage = 'An unexpected error occurred';
+        
+        switch(error.code) {
+          case 'auth/invalid-credential':
+            errorMessage = 'Invalid email or password';
+            break;
+          case 'auth/user-not-found':
+            errorMessage = 'No user found with this email';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password';
+            break;
+        }
+        
+        Alert.alert('Login Error', errorMessage);
       }
     };
-
     const handleModalTypeChange = () => {
         
         setDriver(true);
