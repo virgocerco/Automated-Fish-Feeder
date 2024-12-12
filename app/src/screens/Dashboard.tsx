@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   Image, 
   Platform, 
-  Modal
+  Modal,
+  Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
@@ -49,11 +50,12 @@ export default function Dashboard() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isTimeTooltipVisible, setIsTimeTooltipVisible] = useState(false);
   const [isAmountTooltipVisible, setIsAmountTooltipVisible] = useState(false);
-  const [timeTooltipTimeout, setTimeTooltipTimeout] = useState(null);
-  const [amountTooltipTimeout, setAmountTooltipTimeout] = useState(null);
+  const [timeTooltipTimeout, setTimeTooltipTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [amountTooltipTimeout, setAmountTooltipTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const [FeedingTime, setFeedingTime] = useState<string | null>(null);
   const [FeedingInterval, setFeedingInterval] = useState<number>(1); // Default interval
+
 
   // New state to manage view sections
   const [activeSection, setActiveSection] = useState<'calendar' | 'history' | 'feeding-amount'>('calendar');

@@ -13,7 +13,14 @@ import {
 // Font Loader
 import { useFontLoader } from '../utils/fontLoader';
 
-const AboutScreen = ({ navigation}) => {
+// Import types for React Navigation
+import { NavigationProp } from '@react-navigation/native';
+
+type AboutScreenProps = {
+  navigation: NavigationProp<any>;
+};
+
+const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
   const [isTeamVisible, setIsTeamVisible] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const { fontsLoaded, fontError } = useFontLoader();
@@ -126,7 +133,7 @@ const AboutScreen = ({ navigation}) => {
 
       {isTeamVisible && (
         <View style={styles.teamContainer}>
-          <Text style={styles.meetTeamTitle}>Meet the Fckn Team</Text>
+          <Text style={styles.meetTeamTitle}>Meet the Fckn Team😤</Text>
           <ScrollView 
             style={styles.teamScrollView}
             contentContainerStyle={styles.teamScrollViewContent}
