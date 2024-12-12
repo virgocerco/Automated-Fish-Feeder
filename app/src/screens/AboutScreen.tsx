@@ -79,7 +79,7 @@ const AboutScreen = ({ navigation}) => {
     setIsTeamVisible(!isTeamVisible);
   };
 
-  const handleMemberPress = (index) => {
+  const handleMemberPress = (index: any) => {
     setSelectedMember(selectedMember === index ? null : index);
   };
 

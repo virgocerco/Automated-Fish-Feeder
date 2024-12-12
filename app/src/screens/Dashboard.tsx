@@ -18,6 +18,13 @@ import AmountSlider from '../components/AmountSlider';
 import Calendar from '../components/Calendar';
 import FeedingAmount from '../components/FeedingAmount';
 
+import { 
+  monitorFeedingTime, 
+  addFeedHistoryFromHistory 
+} from '../utils/notificationUtils'; // Import the new utility functions
+
+import { getPHTime, postTimeToDatabase } from '../utils/phRealTime'; 
+
 // Utility function to get Philippine Time
 const getPhilippineTime = () => {
   const options: Intl.DateTimeFormatOptions = {
@@ -54,31 +61,73 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<'calendar' | 'history' | 'feeding-amount'>('calendar');
 
   useEffect(() => {
-    // Update time every second
+    // Function to fetch and post Philippine time
+    const updateTime = () => {
+      const time = getPHTime();
+      postTimeToDatabase(time);
+    };
+  
+    // Update time immediately when the component mounts
+    updateTime();
+  
+    // Set up an interval to update the time every 1 minute (60000 ms)
+    const timer = setInterval(updateTime, 1000);
+  
+    // Cleanup the interval when the component unmounts
+    return () => clearInterval(timer);
+  }, []); // Empty dependency array means this effect runs once when the component mounts
+  
+
+  useEffect(() => {
+    // Update time every second and display in app
     const timer = setInterval(() => {
       setCurrentTime(getPhilippineTime());
     }, 1000);
-
-    // Fetch and listen to next feed time
+  
     const db = getDatabase();
-    const FeedingTimeRef = ref(db, `HISTORY/feedingTime/feedingTime`);
-
-    // Listen for real-time updates
-    const unsubscribe = onValue(FeedingTimeRef, (snapshot) => {
+    const nextFeedingTimeRef = ref(db, 'HISTORY/nextFeedingTime');
+    // const IntervalRef = ref(db, 'HISTORY/interval/interval');
+  
+    const unsubscribeTime = onValue(nextFeedingTimeRef, (snapshot) => {
       if (snapshot.exists()) {
-        const nextTime24Hour = snapshot.val();
-        // Convert to 12-hour format
-        const nextTime12Hour = convertTo12HourFormat(nextTime24Hour);
-        setFeedingTime(nextTime12Hour);
+        const data = snapshot.val();
+        console.log("Full snapshot data:", data);
+  
+        const nextfeedingHours = data?.nextFeedingHours;  // Note the triple 'e' in nextFeeedingHours
+        const nextfeedingMinutes = data?.nextFeedingMinutes;
+  
+        if (nextfeedingHours !== undefined && nextfeedingMinutes !== undefined) {
+          const nextTime24Hour = `${nextfeedingHours.toString().padStart(2, '0')}:${nextfeedingMinutes.toString().padStart(2, '0')}`;
+          const nextTime12Hour = convertTo12HourFormat(nextTime24Hour);
+  
+          console.log("Next Feed Time (24-hour):", nextTime24Hour);
+          console.log("Next Feed Time (12-hour):", nextTime12Hour);
+  
+          setFeedingTime(nextTime12Hour);
+        } else {
+          console.error("Hours or minutes are undefined");
+          setFeedingTime(null);
+        }
+      } else {
+        console.error("No snapshot exists for nextFeedingTime");
+        setFeedingTime(null);
       }
+    }, (error) => {
+      console.error("Error reading next feeding time:", error);
+      setFeedingTime(null);
     });
-
+  
     // Cleanup interval and listener on component unmount
     return () => {
       clearInterval(timer);
-      unsubscribe();
+      unsubscribeTime();
     };
-  }, []);
+  }, []); // Ensure empty dependency array to run only once
+
+  useEffect(() => {
+    console.log("FeedingTime updated:", FeedingTime);  // Log the updated FeedingTime
+  }, [FeedingTime]);  // This will log whenever FeedingTime changes
+  
 
   const handleIconPress = (section: 'calendar' | 'history' | 'feeding-amount') => {
     // Toggle between sections
@@ -215,11 +264,16 @@ export default function Dashboard() {
           <Text style={{color: '#0D5C63', fontSize: 14, fontFamily: 'Motley'}}>
             Current Time: {currentTime}
           </Text>
-          {FeedingTime && (
+          {FeedingTime ? (
             <Text style={{color: '#DAA520', fontSize: 12, fontFamily: 'Motley'}}>
               Next Feed Time: {FeedingTime}
             </Text>
+          ) : (
+            <Text style={{color: 'red', fontSize: 12, fontFamily: 'Motley'}}>
+              Loading Next Feed Time...
+            </Text>
           )}
+
         </View>
 
         {/* Amount Slider with Touchable Wrapper */}

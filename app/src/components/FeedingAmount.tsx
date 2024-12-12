@@ -136,11 +136,13 @@ const styles = StyleSheet.create({
     // backgroundColor: 'orange',
     paddingVertical: 12,
     paddingHorizontal: 30,
+    overflow: 'hidden'
   },
   contentWrapper: {
     gap: 40,
     flexDirection: 'row', 
     // gap: 24,
+    // overflow: 'hidden'
   },
   icon: {
     width: 60,
@@ -148,13 +150,19 @@ const styles = StyleSheet.create({
   },
   textWrapper: {
     flex: 1,
+    // backgroundColor: 'red',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   optionLabel: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+    fontFamily: 'Motley',
   },
   optionSubtext: {
+    fontFamily: 'Motley',
     fontSize: 14,
     color: '#666',
   }
