@@ -1,5 +1,5 @@
 // Sample script to ensure database structure is created correctly
-import { rtdb } from '../utils/firebaseConfig';
+import { rtdb } from './firebaseConfig';
 import { ref, set } from 'firebase/database';
 
 export const initializeSampleData = async () => {

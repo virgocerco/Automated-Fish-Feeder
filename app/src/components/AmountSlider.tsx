@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   circleText: {
-    marginTop: 2,
+    marginTop: 0,
     width: 30,
     textAlign: 'center',
     fontFamily: 'Motley',

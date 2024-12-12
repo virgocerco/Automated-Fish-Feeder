@@ -18,14 +18,14 @@ export const getPHTime = () => {
   const [hour, minute] = timeString.split(':'); // Split hour and minute
 
   return {
-    hour,
-    minute,
+    hour: Number(hour),   // Convert hour to number
+    minute: Number(minute), // Convert minute to number
   };
 };
 
 // Function to post the Philippine time to Firebase Realtime Database
-export const postTimeToDatabase = (time: { hour: string; minute: string }) => {
-  if (!time.hour || !time.minute) {
+export const postTimeToDatabase = (time: { hour: number; minute: number }) => {
+  if (time.hour === undefined || time.minute === undefined) {
     console.error("Invalid time data: ", time);
     return;  // Prevent posting to Firebase if data is invalid
   }
@@ -36,7 +36,7 @@ export const postTimeToDatabase = (time: { hour: string; minute: string }) => {
     minute: time.minute,
   })
   .then(() => {
-    console.log("Philippine time has been posted successfully!");
+    // console.log("Philippine time has been posted successfully!");
   })
   .catch((error) => {
     console.error("Error posting time to Firebase:", error);

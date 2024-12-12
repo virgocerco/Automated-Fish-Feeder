@@ -223,8 +223,8 @@ export default function AuthScreen() {
   return (
     <ImageBackground 
       source={modalType === 'login' 
-        ? require('../../assets/media/background/login.jpg') 
-        : require('../../assets/media/background/signup.png')} 
+        ? require('../../assets/media/background/login.png') 
+        : require('../../assets/media/background/aquarium.png')} 
       style={styles.backgroundImage} 
       resizeMode="cover"
     >

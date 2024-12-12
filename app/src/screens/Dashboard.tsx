@@ -18,12 +18,9 @@ import AmountSlider from '../components/AmountSlider';
 import Calendar from '../components/Calendar';
 import FeedingAmount from '../components/FeedingAmount';
 
-import { 
-  monitorFeedingTime, 
-  addFeedHistoryFromHistory 
-} from '../utils/notificationUtils'; // Import the new utility functions
-
 import { getPHTime, postTimeToDatabase } from '../utils/phRealTime'; 
+import { monitorFeedingTime } from '../utils/notificationUtils'; // Import notification utils
+import { requestNotificationPermissions } from '../utils/notificationUtils';
 
 // Utility function to get Philippine Time
 const getPhilippineTime = () => {
@@ -56,6 +53,7 @@ export default function Dashboard() {
   const [amountTooltipTimeout, setAmountTooltipTimeout] = useState(null);
 
   const [FeedingTime, setFeedingTime] = useState<string | null>(null);
+  const [FeedingInterval, setFeedingInterval] = useState<number>(1); // Default interval
 
   // New state to manage view sections
   const [activeSection, setActiveSection] = useState<'calendar' | 'history' | 'feeding-amount'>('calendar');
@@ -128,6 +126,50 @@ export default function Dashboard() {
     console.log("FeedingTime updated:", FeedingTime);  // Log the updated FeedingTime
   }, [FeedingTime]);  // This will log whenever FeedingTime changes
   
+
+  useEffect(() => {
+    const setupNotifications = async () => {
+      const permissionGranted = await requestNotificationPermissions();
+      
+      if (!permissionGranted) {
+        Alert.alert(
+          "Notification Permissions",
+          "We need notification permissions to alert you about feeding times. Please enable them in your device settings.",
+          [{ text: "OK" }]
+        );
+      }
+    };
+
+    setupNotifications();
+  }, []); // Empty dependency array means this runs once on component mount
+
+  useEffect(() => {
+    if (FeedingTime) {
+      const [time, period] = FeedingTime.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
+      
+      // Convert to 24-hour format
+      let formattedHours = hours;
+      if (period === 'PM' && hours !== 12) {
+        formattedHours += 12;
+      } else if (period === 'AM' && hours === 12) {
+        formattedHours = 0;
+      }
+  
+      const formattedTime = `${formattedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      
+      const { intervalId } = monitorFeedingTime(
+        formattedTime, 
+        FeedingInterval, 
+        (nextFeedTime) => {
+          // Optional: You can update the database or state with the next feed time
+          console.log('Next feed time:', nextFeedTime);
+        }
+      );
+  
+      return () => clearInterval(intervalId);
+    }
+  }, [FeedingTime, FeedingInterval]);
 
   const handleIconPress = (section: 'calendar' | 'history' | 'feeding-amount') => {
     // Toggle between sections
@@ -336,7 +378,14 @@ export default function Dashboard() {
       {activeSection === 'feeding-amount' && (
         <FeedingAmount/>
       )}
+
+      {activeSection === 'history' && (
+        <View>
+          <Text style={{color: '#f5f5f5', fontSize: 20, fontFamily: 'Motley'}}>No History...</Text>
+        </View>
+      )}
       </View>
+
 
 
     

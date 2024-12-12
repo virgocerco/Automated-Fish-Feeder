@@ -1,69 +1,152 @@
-import { rtdb } from './firebaseConfig';
-import { ref, get, push, update, serverTimestamp } from 'firebase/database';
+import * as Notifications from 'expo-notifications';
+import { Vibration, Platform } from 'react-native';
+import { getDatabase, ref, set } from 'firebase/database';
 
-export const addFeedHistoryFromHistory = async (feedingTime: string, interval: number) => {
+// Configure notifications with more robust handling
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+// Array of random Tagalog notification messages
+const FEEDING_MESSAGES = [
+  "Makakain na rin sa wakas! 🐟",
+  "Pucha, isda kakain na! 🍽️",
+  "Sarap ng pagkain sana di mamatay 😂",
+  "Time to feast, mga isda! 🐠",
+  "Kumusta ka, mga gutom na isda? 🎣",
+  "Dinner time, fish squad! 🐡",
+  "Hay naku, finally kakain ka! 🍲",
+  "Gutom na ang mga isda, sige! 🌊",
+  "Kain na tayo, mga bradpren! 🐠",
+  "Pagkain na, wag makulit! 😄",
+  "Mabuti ka pa, may pagkain ka! 🍴",
+  "Salamat sa pagpapakain! 🐟",
+  "Wow, libre! Kain na ang mga isda! 🌟",
+  "Ang sarap! Kakain na naman! 🍽️",
+  "Uy, may pagkain na! 🐠"
+];
+
+export const requestNotificationPermissions = async () => {
   try {
-    const [hours, minutes] = feedingTime.split(":").map(Number);
-    const nextFeedingHours = (hours + interval) % 24;
-    const nextFeedingTime = `${String(nextFeedingHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-    const feedHistoryRef = ref(rtdb, '/FEED-HISTORY');
-    const newFeedRef = push(feedHistoryRef);
-    await update(newFeedRef, {
-      time: feedingTime,
-      interval,
-      timestamp: serverTimestamp(),
-    });
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowSound: true,
+          allowBadge: false,
+        },
+      });
+      finalStatus = status;
+    }
 
-    console.log('✅ Feeding history added:', {
-      feedingTime,
-      interval,
-      nextFeedingTime,
-    });
-
-    return nextFeedingTime;
+    return finalStatus === 'granted';
   } catch (error) {
-    console.error('❌ Error adding to FEED-HISTORY:', error);
-    throw error;
+    console.error('Error requesting notification permissions:', error);
+    return false;
   }
 };
 
-export const monitorFeedingTime = (feedingTime: string, interval: number, onTrigger: () => void) => {
-  console.log(`🕒 Started Monitoring - Feeding Time: ${feedingTime}, Interval: ${interval}`);
-
-  const [inputHours, inputMinutes] = feedingTime.split(":").map(Number);
-
-  const intervalId = setInterval(() => {
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
-    const currentSeconds = now.getSeconds();
-
-    // Format current and target times for easy comparison
-    const currentTimeStr = `${String(currentHours).padStart(2, "0")}:${String(currentMinutes).padStart(2, "0")}:${String(currentSeconds).padStart(2, "0")}`;
-    const targetTimeStr = `${String(inputHours).padStart(2, "0")}:${String(inputMinutes).padStart(2, "0")}:00`;
-
-    // Detailed logging every second
-    console.log(`⏰ [Monitoring] Current: ${currentTimeStr} --- Target: ${targetTimeStr}`);
-
-    // Precise time matching
-    if (currentHours === inputHours && currentMinutes === inputMinutes && currentSeconds === 0) {
-      console.log("🐠 FISH FEED! 🐠");
-      console.log(`🕒 Exact Feeding Time Matched: ${currentTimeStr}`);
-
-      // Log to FEED-HISTORY
-      addFeedHistoryFromHistory(feedingTime, interval)
-        .then((nextFeedingTime) => {
-          console.log(`⏭️ Next feeding time will be: ${nextFeedingTime}`);
-        })
-        .catch((error) => {
-          console.error("❌ Error logging feed history:", error);
-        });
-
-      onTrigger(); // Trigger any callback or action after feeding time
-      clearInterval(intervalId); // Stop monitoring after the log has been triggered
-    }
-  }, 1000); // Check every second
-
-  return intervalId;
+export const calculateNextFeedTime = (currentTime: string, interval: number): string => {
+  // Parse the current time
+  const [hours, minutes] = currentTime.split(':').map(Number);
+  
+  // Calculate the next feed time by adding the interval
+  let nextHours = hours + interval;
+  
+  // Handle hour rollover (24-hour format)
+  nextHours = nextHours % 24;
+  
+  // Format the next feed time
+  return `${nextHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
+
+export const monitorFeedingTime = (
+    initialFeedTime: string, 
+    interval: number, 
+    onFeedCallback?: (nextFeedTime: string) => void
+  ) => {
+    console.log(`🕒 Started Continuous Monitoring - Initial Feed Time: ${initialFeedTime}, Interval: ${interval}`);
+  
+    let currentFeedTime = initialFeedTime;
+  
+    const updateNextFeedingTimeInDatabase = (nextTime: string) => {
+      const db = getDatabase();
+      const [hours, minutes] = nextTime.split(':').map(Number);
+      
+      try {
+        const nextFeedingTimeRef = ref(db, 'HISTORY/nextFeedingTime');
+        set(nextFeedingTimeRef, {
+          nextFeedingHours: hours,
+          nextFeedingMinutes: minutes
+        });
+        console.log(`🔄 Updated Next Feeding Time in Database: ${nextTime}`);
+      } catch (error) {
+        console.error('Error updating next feeding time in database:', error);
+      }
+    };
+  
+    const intervalId = setInterval(() => {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentSeconds = now.getSeconds();
+  
+      // Parse the current feed time
+      const [feedHours, feedMinutes] = currentFeedTime.split(':').map(Number);
+  
+      // Detailed logging every second
+      const currentTimeStr = `${String(currentHours).padStart(2, "0")}:${String(currentMinutes).padStart(2, "0")}:${String(currentSeconds).padStart(2, "0")}`;
+      const targetTimeStr = `${String(feedHours).padStart(2, "0")}:${String(feedMinutes).padStart(2, "0")}:00`;
+  
+      console.log(`⏰ [Monitoring] Current: ${currentTimeStr} --- Target: ${targetTimeStr}`);
+  
+      // Precise time matching
+      if (currentHours === feedHours && currentMinutes === feedMinutes && currentSeconds === 0) {
+        console.log("🐠 FISH FEED! 🐠");
+        console.log(`🕒 Exact Feeding Time Matched: ${currentTimeStr}`);
+  
+        // Select a random message from the array
+        const randomMessage = FEEDING_MESSAGES[Math.floor(Math.random() * FEEDING_MESSAGES.length)];
+  
+        // Send Expo Notification
+        Notifications.scheduleNotificationAsync({
+          content: {
+            title: "🐟 Feeding Time!",
+            body: randomMessage,
+            sound: true,
+            priority: Platform.OS === 'android' 
+              ? Notifications.AndroidNotificationPriority.HIGH 
+              : undefined,
+          },
+          trigger: null, // Immediate notification
+        });
+  
+        // Vibration pattern
+        Vibration.vibrate([1000, 1000, 1000]);
+  
+        // Calculate the next feed time
+        const nextFeedTime = calculateNextFeedTime(currentFeedTime, interval);
+        currentFeedTime = nextFeedTime;
+  
+        // Update next feeding time in database
+        updateNextFeedingTimeInDatabase(nextFeedTime);
+  
+        // Optional callback to notify about the next feed time
+        if (onFeedCallback) {
+          onFeedCallback(nextFeedTime);
+        }
+      }
+    }, 1000); // Check every second
+  
+    return {
+      intervalId,
+      getCurrentFeedTime: () => currentFeedTime
+    };
+  };
