@@ -48,6 +48,24 @@ const convertTo24HourFormat = (hour: string, minute: string, period: string): st
   return `${hourNum.toString().padStart(2, '0')}:${minute}`;
 };
 
+// Calculate feeding time based on initial time and interval
+const calculateFeedingTime = (initialTime: string, interval: number): string => {
+  const [initialHours, initialMinutes] = initialTime.split(':').map(Number);
+  const now = new Date();
+  const initialDate = new Date(now);
+  initialDate.setHours(initialHours, initialMinutes, 0, 0);
+
+  // Calculate the feeding time
+  const feedingTime = new Date(initialDate.getTime() + interval * 60 * 60 * 1000);
+
+  // Format to 24-hour time
+  return feedingTime.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
 const TimePicker: React.FC<TimePickerProps> = ({ onTimeChange }) => {
   const [hourIndex, setHourIndex] = useState(0);
   const [minuteIndex, setMinuteIndex] = useState(0);
@@ -128,8 +146,16 @@ const TimePicker: React.FC<TimePickerProps> = ({ onTimeChange }) => {
         // Submit time to Firebase Realtime Database
         await set(ref(db, `HISTORY/feedingTime/time`), timeString);
         
-        // Update nextFeedTimes with the new time
-        await set(ref(db, `HISTORY/feedingTime/nextFeedTime`), timeString);
+        // Fetch the current interval
+        const intervalSnapshot = await get(ref(db, `HISTORY/feedingInterval/interval`));
+        
+        if (intervalSnapshot.exists()) {
+          const interval = intervalSnapshot.val();
+          
+          // Calculate and submit the feeding time based on the interval
+          const calculatedFeedingTime = calculateFeedingTime(timeString, interval);
+          await set(ref(db, `HISTORY/feedingTime/feedingTime`), calculatedFeedingTime);
+        }
 
         // Call onTimeChange callback if provided
         if (onTimeChange) {

@@ -174,7 +174,7 @@ export default function Dashboard() {
         </View>
       )}
 
-      <View style={{flex: 1, backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0, marginBottom: -50}}>
+      <View style={{flex: 1, backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0, marginBottom: -60}}>
         <Image
           style={{position: 'absolute', width: '100%', height: '100%'}}
           source={require('../../assets/media/background/aquarium.png')}
@@ -183,28 +183,28 @@ export default function Dashboard() {
         {/* TIME 101 */}
         <View 
           style={{
-            width: '84%',
-            height: '50%',
-            borderRadius: 18,
+            // backgroundColor: 'orange',
+            width: '90%',
+            height: '40%',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            marginTop: 20,
-            paddingTop: 10
           }}
         >
           <Image 
-            style={{position: 'absolute', width: '110%', height: '100%', resizeMode: 'stretch', zIndex: 0}} 
+            style={{position: 'absolute', width: '100%', height: '110%', resizeMode: 'stretch', zIndex: 0}} 
             source={require('../../assets/media/background/time-frame.png')} 
           />
+
           <TouchableOpacity 
             onPressIn={handleTimePressIn} 
             onPressOut={handleTimePressOut} 
-            style={{width: '100%', height: '100%', position: 'absolute', zIndex: 0, backgroundColor: 'transparent'}}
+            style={{width: '80%', height: '80%', position: 'absolute', zIndex: 0, backgroundColor: 'transparent'}}
           >
-            
           </TouchableOpacity>
+
           <TimePicker />
+
           <Text style={{color: '#0D5C63', fontSize: 14, fontFamily: 'Motley'}}>
             Current Time: {currentTime}
           </Text>
@@ -216,18 +216,18 @@ export default function Dashboard() {
         </View>
 
         {/* Amount Slider with Touchable Wrapper */}
-        <View style={{width: '84%', position: 'relative'}}>
+        <View style={{width: '90%', position: 'relative', backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
           <TouchableOpacity 
             onPressIn={handleAmountPressIn} 
             onPressOut={handleAmountPressOut} 
-            style={{position: 'absolute', width: '100%', height: '100%', zIndex: 0, backgroundColor: 'transparent'}}
+            style={{position: 'absolute', width: '100%', height: '50%', zIndex: 0, backgroundColor: 'transparent'}}
           />
           <AmountSlider />
           <FeedingAmount/>
         </View>
       </View>
 
-      <View style={{position: 'relative', flex: 1, backgroundColor: '#6bacab', borderLeftWidth: 2, borderRightWidth: 2, borderTopWidth: 3, borderColor: '#0D5C63', display: 'flex', justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32}}>
+      <View style={{position: 'relative', flex: 0.8, backgroundColor: '#6bacab', borderLeftWidth: 2, borderRightWidth: 2, borderTopWidth: 3, borderColor: '#0D5C63', display: 'flex', justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32}}>
         <View style={{position: 'absolute', top: 12, display: 'flex', flexDirection: 'row', gap: 6, backgroundColor: 'transparent'}}>
           <TouchableOpacity style={{backgroundColor: '#0D5C63', borderRadius: 12, width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center'}} onPress={() => {}}>
             <Image style={{width: 30, height: 30}} source={require('../../assets/media/icon/calendar-ico.png')}></Image>

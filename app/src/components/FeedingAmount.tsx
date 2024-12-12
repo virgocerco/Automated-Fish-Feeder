@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { ref, set, get } from "firebase/database";
-import { rtdb } from "../utils/firebaseConfig";
-import "./FeedingAmountComponent.css"; // Import the CSS file
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet ,Image } from 'react-native';
+import { ref, set, get } from 'firebase/database';
+import { rtdb } from '../utils/firebaseConfig';
 
-const FeedingAmountComponent: React.FC = () => {
-  const [amount, setAmount] = useState<string>("Just Right"); // Default "Just Right"
-  const [duration, setDuration] = useState<number>(5); // Default 5
+const FeedingAmountComponent = () => {
+  const [amount, setAmount] = useState<string>("Just Right");
+  const [duration, setDuration] = useState<number>(5);
 
   const feedingOptions = [
     { label: "Little", value: 3 },
@@ -13,7 +13,6 @@ const FeedingAmountComponent: React.FC = () => {
     { label: "A Lot", value: 10 },
   ];
 
-  // Retrieve data on component mount
   useEffect(() => {
     const amountRef = ref(rtdb, "HISTORY/feedingAmount/amount");
     const durationRef = ref(rtdb, "HISTORY/feedingAmount/duration");
@@ -32,7 +31,7 @@ const FeedingAmountComponent: React.FC = () => {
     });
   }, []);
 
-  const handleCheckboxChange = (label: string, value: number) => {
+  const handleOptionSelect = (label: string, value: number) => {
     setAmount(label);
     setDuration(value);
 
@@ -42,23 +41,65 @@ const FeedingAmountComponent: React.FC = () => {
   };
 
   return (
-    <div>
-      <h3>Choose Feeding Amount</h3>
-      <div className="feeding-container">
+    <View style={styles.container}>
+      <Image
+        style={{position: 'absolute', top: 0, left: 0, width: '500%', height: '500%', resizeMode: 'cover'}}
+        source={require('../../assets/media/background/plank.jpg')}></Image>
+      <Text style={styles.title}>Choose Feeding Amount</Text>
+      <View style={styles.optionsContainer}>
         {feedingOptions.map((option) => (
-          <div key={option.label} className="checkbox-item">
-            <input
-              type="checkbox"
-              id={option.label}
-              checked={amount === option.label}
-              onChange={() => handleCheckboxChange(option.label, option.value)}
-            />
-            <label htmlFor={option.label}>{option.label}</label>
-          </div>
+          <TouchableOpacity
+            key={option.label}
+            style={[
+              styles.optionButton,
+              amount === option.label && styles.selectedOption
+            ]}
+            onPress={() => handleOptionSelect(option.label, option.value)}
+          >
+            <Text style={styles.optionText}>{option.label}</Text>
+          </TouchableOpacity>
         ))}
-      </div>
-    </div>
+      </View>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: 'red',
+    borderRadius: 8,
+    padding: 12,
+    width: '80%',
+    marginTop: 10,
+    overflow: 'hidden',
+  },
+  title: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  optionsContainer: {
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  optionButton: {
+    flex: 1,
+    padding: 4,
+    margin: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    alignItems: 'center',
+    // backgroundColor: 'orange'
+  },
+  selectedOption: {
+    backgroundColor: '#e0e0e0',
+  },
+  optionText: {
+    fontSize: 16,
+  },
+});
 
 export default FeedingAmountComponent;

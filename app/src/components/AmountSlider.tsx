@@ -161,10 +161,12 @@ export default function FeedingTime() {
   return (
     <View style={styles.sliderContainer}>
       <View style={styles.sliderBackground}>
+
         <Image
           style={{ width: '105%', height: 60, resizeMode: 'stretch' }}
           source={require('../../assets/media/icon/sliderimg.png')}
         />
+
         <TouchableOpacity
           onPress={handleSliderClick}
           style={[styles.circle, { left: `${positions[circlePosition]}%` }]}>
@@ -180,6 +182,7 @@ export default function FeedingTime() {
           />
           <Text style={styles.circleText}>{numbers[circlePosition]}</Text>
         </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -191,6 +194,7 @@ const styles = StyleSheet.create({
     height: 60,
     position: 'relative',
     alignSelf: 'center',
+    // backgroundColor: 'blue',
   },
   sliderBackground: {
     marginTop: 40,
@@ -199,7 +203,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     width: '100%',
-    height: 14,
+    height: 0,
     borderRadius: 6,
     transform: [{ translateY: -7 }],
   },
