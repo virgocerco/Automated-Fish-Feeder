@@ -2,6 +2,8 @@
 
 # FILE
 app/scr/utils/super
+**/config.ts
+
 # dependencies
 node_modules/
 
