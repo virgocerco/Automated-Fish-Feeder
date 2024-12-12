@@ -13,7 +13,7 @@ import {
 // Font Loader
 import { useFontLoader } from '../utils/fontLoader';
 
-const AboutScreen = ({ navigation }) => {
+const AboutScreen = ({ navigation}) => {
   const [isTeamVisible, setIsTeamVisible] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const { fontsLoaded, fontError } = useFontLoader();
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   backBtn: {
     position: 'absolute',
     top: 32,
-    left: 14,
+    left: 32,
     zIndex: 10
   },
   exitIcon: {

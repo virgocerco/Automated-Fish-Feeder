@@ -50,6 +50,9 @@ export default function Dashboard() {
 
   const [FeedingTime, setFeedingTime] = useState<string | null>(null);
 
+  // New state to manage view sections
+  const [activeSection, setActiveSection] = useState<'calendar' | 'history' | 'feeding-amount'>('calendar');
+
   useEffect(() => {
     // Update time every second
     const timer = setInterval(() => {
@@ -58,7 +61,7 @@ export default function Dashboard() {
 
     // Fetch and listen to next feed time
     const db = getDatabase();
-    const FeedingTimeRef = ref(db, `HISTORY/feedingTime/FeedingTime`);
+    const FeedingTimeRef = ref(db, `HISTORY/feedingTime/feedingTime`);
 
     // Listen for real-time updates
     const unsubscribe = onValue(FeedingTimeRef, (snapshot) => {
@@ -77,6 +80,10 @@ export default function Dashboard() {
     };
   }, []);
 
+  const handleIconPress = (section: 'calendar' | 'history' | 'feeding-amount') => {
+    // Toggle between sections
+    setActiveSection(section);
+  };
 
   const handleLogout = async () => {
     try {
@@ -174,7 +181,7 @@ export default function Dashboard() {
         </View>
       )}
 
-      <View style={{flex: 1, backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0, marginBottom: -60}}>
+      <View style={{flex: 1, backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, marginBottom: -60}}>
         <Image
           style={{position: 'absolute', width: '100%', height: '100%'}}
           source={require('../../assets/media/background/aquarium.png')}
@@ -192,7 +199,7 @@ export default function Dashboard() {
           }}
         >
           <Image 
-            style={{position: 'absolute', width: '100%', height: '110%', resizeMode: 'stretch', zIndex: 0}} 
+            style={{position: 'absolute', width: '100%', height: '140%', resizeMode: 'stretch', zIndex: 0}} 
             source={require('../../assets/media/background/time-frame.png')} 
           />
 
@@ -223,21 +230,62 @@ export default function Dashboard() {
             style={{position: 'absolute', width: '100%', height: '50%', zIndex: 0, backgroundColor: 'transparent'}}
           />
           <AmountSlider />
-          <FeedingAmount/>
         </View>
       </View>
 
-      <View style={{position: 'relative', flex: 0.8, backgroundColor: '#6bacab', borderLeftWidth: 2, borderRightWidth: 2, borderTopWidth: 3, borderColor: '#0D5C63', display: 'flex', justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32}}>
-        <View style={{position: 'absolute', top: 12, display: 'flex', flexDirection: 'row', gap: 6, backgroundColor: 'transparent'}}>
-          <TouchableOpacity style={{backgroundColor: '#0D5C63', borderRadius: 12, width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center'}} onPress={() => {}}>
-            <Image style={{width: 30, height: 30}} source={require('../../assets/media/icon/calendar-ico.png')}></Image>
+      <View style={styles.bottomNavContainer}>
+        <View style={styles.iconContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.iconButton, 
+              activeSection === 'calendar' && styles.activeIconButton
+            ]} 
+            onPress={() => handleIconPress('calendar')}
+          >
+            <Image 
+              style={styles.icon} 
+              source={require('../../assets/media/icon/calendar-ico.png')}
+            />
           </TouchableOpacity>
-          <TouchableOpacity style={{backgroundColor: '#0D5C63', borderRadius: 12, width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center'}} onPress={() => {}}>
-            <Image style={{width: 30, height: 30}} source={require('../../assets/media/icon/book-ico.png')}></Image>
+          
+          <TouchableOpacity 
+            style={[
+              styles.iconButton, 
+              activeSection === 'history' && styles.activeIconButton
+            ]} 
+            onPress={() => handleIconPress('history')}
+          >
+            <Image 
+              style={styles.icon} 
+              source={require('../../assets/media/icon/book-ico.png')}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.iconButton, 
+              activeSection === 'feeding-amount' && styles.activeIconButton
+            ]} 
+            onPress={() => handleIconPress('feeding-amount')}
+          >
+            <Image 
+              style={styles.icon} 
+              source={require('../../assets/media/icon/food-ico.png')}
+            />
           </TouchableOpacity>
         </View>
+
+      {activeSection === 'calendar' && (
         <Calendar />
+      )}
+
+      {activeSection === 'feeding-amount' && (
+        <FeedingAmount/>
+      )}
       </View>
+
+
+    
     </KeyboardAvoidingView>
   );
 }
@@ -247,6 +295,45 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     backgroundColor: '#f5f5f5'
+  },
+  bottomNavContainer: {
+    position: 'relative', 
+    flex: 1, 
+    backgroundColor: '#6bacab', 
+    borderLeftWidth: 2, 
+    borderRightWidth: 2, 
+    borderTopWidth: 3, 
+    borderColor: '#0D5C63', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 50
+  },
+  iconContainer: {
+    position: 'absolute', 
+    top: 40, 
+    display: 'flex', 
+    flexDirection: 'row', 
+    gap: 6, 
+    backgroundColor: 'transparent'
+  },
+  iconButton: {
+    backgroundColor: '#0D5C63', 
+    borderRadius: 12, 
+    width: 50, 
+    height: 50, 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center'
+  },
+  activeIconButton: {
+    backgroundColor: '#DAA520'
+  },
+  icon: {
+    width: 30, 
+    height: 30
   },
   modalButton: {
     position: 'absolute',
