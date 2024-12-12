@@ -4,6 +4,10 @@
 app/scr/utils/super
 **/config.ts
 
+node-time-testing-only
+**/serviceAccountKey.json
+
+
 # dependencies
 node_modules/
 
