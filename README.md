@@ -4,8 +4,7 @@ Welcome to the Automated Fish Feeder project repository! This project was develo
 
 ## Overview
 
-The Automated Fish Feeder is an IoT-based solution designed to automate the feeding process for fish. By utilizing an ESP32 microcontroller and a React-based application, this project aims to make fish care more convenient and reliable for pet owners.
-
+The Automated Fish Feeder is an IoT-based solution designed to automate the feeding process for fish. By utilizing an ESP32 microcontroller and a React-based application
 ## Features
 
 - **Automated Feeding Schedule:** Set specific feeding times for your fish.
